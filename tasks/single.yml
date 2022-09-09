@@ -183,6 +183,7 @@
         labels:
           app: "{{k8s_simple_proxied_app.name}}"
       spec:
+        ingressClassName: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.ingressClassName is defined else 'nginx' }}"
         tls:
           - hosts: "{{k8s_simple_proxied_app.hostnames}}"
             secretName: "{{k8s_simple_proxied_app.certName if k8s_simple_proxied_app.certName is defined else k8s_simple_proxied_app.name }}-tls"
@@ -209,6 +210,7 @@
         labels:
           app: "{{k8s_simple_proxied_app.name}}"
       spec:
+        ingressClassName: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.ingressClassName is defined else 'nginx' }}"
         rules: "{{httpHosts}}"
   when:
     - k8s_simple_proxied_app.issuerRef is undefined
