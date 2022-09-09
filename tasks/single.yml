@@ -1,0 +1,214 @@
+---
+- name: set httpHosts for "{{k8s_simple_proxied_app.name}}"
+  set_fact:
+    httpHosts: []
+    deploymentPorts: "{{ [{'containerPort': k8s_simple_proxied_app.containerPort|default(80), 'protocol': 'TCP'}] }}"
+    servicePorts: "{{ [{'port': k8s_simple_proxied_app.containerPort|default(80), 'protocol': 'TCP'}] }}"
+
+- name: set httpHosts for "{{k8s_simple_proxied_app.name}}"
+  set_fact:
+    httpHosts: "{{ httpHosts | union([{'host': item, 'http': { 'paths': [{ 'path':(k8s_simple_proxied_app.uriPath if k8s_simple_proxied_app.uriPath is defined else k8s_simple_proxied_app.uriRegex if k8s_simple_proxied_app.uriRegex is defined else '/'), 'backend':{ 'serviceName':k8s_simple_proxied_app.name, 'servicePort':k8s_simple_proxied_app.containerPort|default(80) }}] } }])}}"
+  with_items: "{{k8s_simple_proxied_app.hostnames}}"
+
+- name: set deploymentPorts for "{{k8s_simple_proxied_app.name}}"
+  set_fact:
+    deploymentPorts: "{{ deploymentPorts | union([{'containerPort': port.number, 'protocol': 'TCP'}])}}"
+
+  loop: "{{ k8s_simple_proxied_app.other_ports if k8s_simple_proxied_app.other_ports is defined else [] }}"
+  loop_control:
+    loop_var: port
+  when:
+    - k8s_simple_proxied_app.other_ports is defined
+
+- name: set deploymentPorts for "{{k8s_simple_proxied_app.name}}"
+  set_fact:
+    servicePorts: "{{ servicePorts | union([{'port': port.number, 'protocol': 'TCP'}])}}"
+
+  loop: "{{ k8s_simple_proxied_app.other_ports if k8s_simple_proxied_app.other_ports is defined else [] }}"
+  loop_control:
+    loop_var: port
+  when:
+    - k8s_simple_proxied_app.other_ports is defined
+
+# - name: bebug
+#   debug:
+#     msg: "{{httpHosts}}"
+
+- name: Create Certificate for "{{k8s_simple_proxied_app.name}}"
+  community.kubernetes.k8s:
+    state: "{{ state if state is defined else 'present' }}"
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        name: "{{ k8s_simple_proxied_app.name }}"
+        namespace: apps
+        labels:
+          app: "{{k8s_simple_proxied_app.name}}"
+      spec:
+        secretName: "{{ k8s_simple_proxied_app.name }}-tls"
+        issuerRef:
+          name: "{{ k8s_simple_proxied_app.issuerRef }}"
+          kind: ClusterIssuer
+
+        dnsNames: "{{k8s_simple_proxied_app.hostnames}}"
+        acme:
+          config:
+            - http01:
+                ingressClass: nginx
+              domains: "{{k8s_simple_proxied_app.hostnames}}"
+  when:
+    - k8s_simple_proxied_app.issuerRef is defined
+    - k8s_simple_proxied_app.certName is undefined
+
+- name: Create Common Certificate for "{{k8s_simple_proxied_app.certName}}"
+  community.kubernetes.k8s:
+    state: "{{ state if state is defined else 'present' }}"
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        name: "{{ k8s_simple_proxied_app.certName }}"
+        namespace: apps
+        labels:
+          cert: "{{k8s_simple_proxied_app.certName}}"
+      spec:
+        secretName: "{{ k8s_simple_proxied_app.certName }}-tls"
+        issuerRef:
+          name: "{{ k8s_simple_proxied_app.issuerRef }}"
+          kind: ClusterIssuer
+
+        dnsNames: "{{k8s_simple_proxied_app.hostnames}}"
+        acme:
+          config:
+            - http01:
+                ingressClass: nginx
+              domains: "{{k8s_simple_proxied_app.hostnames}}"
+  when:
+    - k8s_simple_proxied_app.issuerRef is defined
+    - k8s_simple_proxied_app.certName is defined
+
+- name: Create Deployment for "{{k8s_simple_proxied_app.name}} with env"
+  community.kubernetes.k8s:
+    state: "{{ state if state is defined else 'present' }}"
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        namespace: apps
+        name: "{{k8s_simple_proxied_app.name}}"
+        labels:
+          app: "{{k8s_simple_proxied_app.name}}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: "{{k8s_simple_proxied_app.name}}"
+        template:
+          metadata:
+            labels:
+              app: "{{k8s_simple_proxied_app.name}}"
+          spec:
+            containers:
+              - name: "{{k8s_simple_proxied_app.name}}"
+                image: "{{k8s_simple_proxied_app.image}}"
+                ports: "{{deploymentPorts}}"
+                env: "{{ k8s_simple_proxied_app.env }}"
+            imagePullSecrets: "{{ [{'name': k8s_simple_proxied_app.privateRegistry}] if k8s_simple_proxied_app.privateRegistry is defined else [] }}"
+
+  when:
+    - k8s_simple_proxied_app.env is defined
+
+- name: Create Deployment for "{{k8s_simple_proxied_app.name}}"
+  community.kubernetes.k8s:
+    state: "{{ state if state is defined else 'present' }}"
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        namespace: apps
+        name: "{{k8s_simple_proxied_app.name}}"
+        labels:
+          app: "{{k8s_simple_proxied_app.name}}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: "{{k8s_simple_proxied_app.name}}"
+        template:
+          metadata:
+            labels:
+              app: "{{k8s_simple_proxied_app.name}}"
+          spec:
+            containers:
+              - name: "{{k8s_simple_proxied_app.name}}"
+                image: "{{k8s_simple_proxied_app.image}}"
+                imagePullPolicy: Always
+                ports: "{{deploymentPorts}}"
+            imagePullSecrets: "{{ [{'name': k8s_simple_proxied_app.privateRegistry}] if k8s_simple_proxied_app.privateRegistry is defined else [] }}"
+  when:
+    - k8s_simple_proxied_app.env is undefined
+
+- name: Create Service for "{{k8s_simple_proxied_app.name}}"
+  community.kubernetes.k8s:
+    state: "{{ state if state is defined else 'present' }}"
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        namespace: apps
+        name: "{{k8s_simple_proxied_app.name}}"
+        labels:
+          app: "{{k8s_simple_proxied_app.name}}"
+      spec:
+        selector:
+          app: "{{k8s_simple_proxied_app.name}}"
+        ports: "{{servicePorts}}"
+
+- name: Create Ingress with https for "{{k8s_simple_proxied_app.name}}"
+  community.kubernetes.k8s:
+    state: "{{ state if state is defined else 'present' }}"
+    definition:
+      apiVersion: extensions/v1beta1
+      kind: Ingress
+      metadata:
+        namespace: apps
+        name: "{{k8s_simple_proxied_app.name}}"
+        annotations:
+          nginx.ingress.kubernetes.io/rewrite-target: "{{ k8s_simple_proxied_app.uriRewrite if k8s_simple_proxied_app.uriRewrite is defined else '/$2' if k8s_simple_proxied_app.uriRegex is defined else '/' }}"
+          nginx.ingress.kubernetes.io/ssl-redirect: "{{k8s_simple_proxied_app.httpsRedirect | default('true')}}"
+          nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+          nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+          nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+        labels:
+          app: "{{k8s_simple_proxied_app.name}}"
+      spec:
+        tls:
+          - hosts: "{{k8s_simple_proxied_app.hostnames}}"
+            secretName: "{{k8s_simple_proxied_app.certName if k8s_simple_proxied_app.certName is defined else k8s_simple_proxied_app.name }}-tls"
+        rules: "{{httpHosts }}"
+
+  when:
+    - k8s_simple_proxied_app.issuerRef is defined
+
+- name: Create Ingress with http for "{{k8s_simple_proxied_app.name}}"
+  community.kubernetes.k8s:
+    state: "{{ state if state is defined else 'present' }}"
+    definition:
+      apiVersion: extensions/v1beta1
+      kind: Ingress
+      metadata:
+        namespace: apps
+        name: "{{k8s_simple_proxied_app.name}}"
+        annotations:
+          nginx.ingress.kubernetes.io/rewrite-target: "{{ k8s_simple_proxied_app.uriRewrite if k8s_simple_proxied_app.uriRewrite is defined else  '/$2' if k8s_simple_proxied_app.uriRegex is defined else '/' }}"
+          nginx.ingress.kubernetes.io/ssl-redirect: "false"
+          nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+          nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+          nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+        labels:
+          app: "{{k8s_simple_proxied_app.name}}"
+      spec:
+        rules: "{{httpHosts}}"
+  when:
+    - k8s_simple_proxied_app.issuerRef is undefined
