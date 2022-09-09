@@ -1,13 +1,14 @@
 ---
 
 
-- name: Create App"
+- name: Create App from k8s_simple_proxied_app"
   include_tasks: single.yml
   when:
     - k8s_simple_proxied_app is defined
+    - k8s_simple_proxied_apps is undefined
 
 
-- name: Create Apps"
+- name: Create Apps from k8s_simple_proxied_apps"
   include_tasks: single.yml
   loop: "{{ k8s_simple_proxied_apps if k8s_simple_proxied_apps is defined else [] }}"
   loop_control:
@@ -15,3 +16,4 @@
   when:
     - k8s_simple_proxied_apps is defined
     - k8s_simple_proxied_app is undefined
+

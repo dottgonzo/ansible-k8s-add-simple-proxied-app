@@ -42,7 +42,7 @@
       kind: Certificate
       metadata:
         name: "{{ k8s_simple_proxied_app.name }}"
-        namespace: apps
+        namespace: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.namespace is defined else 'apps' }}"
         labels:
           app: "{{k8s_simple_proxied_app.name}}"
       spec:
@@ -69,7 +69,7 @@
       kind: Certificate
       metadata:
         name: "{{ k8s_simple_proxied_app.certName }}"
-        namespace: apps
+        namespace: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.namespace is defined else 'apps' }}"
         labels:
           cert: "{{k8s_simple_proxied_app.certName}}"
       spec:
@@ -95,7 +95,7 @@
       apiVersion: apps/v1
       kind: Deployment
       metadata:
-        namespace: apps
+        namespace: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.namespace is defined else 'apps' }}"
         name: "{{k8s_simple_proxied_app.name}}"
         labels:
           app: "{{k8s_simple_proxied_app.name}}"
@@ -126,7 +126,7 @@
       apiVersion: apps/v1
       kind: Deployment
       metadata:
-        namespace: apps
+        namespace: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.namespace is defined else 'apps' }}"
         name: "{{k8s_simple_proxied_app.name}}"
         labels:
           app: "{{k8s_simple_proxied_app.name}}"
@@ -156,7 +156,7 @@
       apiVersion: v1
       kind: Service
       metadata:
-        namespace: apps
+        namespace: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.namespace is defined else 'apps' }}"
         name: "{{k8s_simple_proxied_app.name}}"
         labels:
           app: "{{k8s_simple_proxied_app.name}}"
@@ -172,7 +172,7 @@
       apiVersion: extensions/v1beta1
       kind: Ingress
       metadata:
-        namespace: apps
+        namespace: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.namespace is defined else 'apps' }}"
         name: "{{k8s_simple_proxied_app.name}}"
         annotations:
           nginx.ingress.kubernetes.io/rewrite-target: "{{ k8s_simple_proxied_app.uriRewrite if k8s_simple_proxied_app.uriRewrite is defined else '/$2' if k8s_simple_proxied_app.uriRegex is defined else '/' }}"
@@ -198,7 +198,7 @@
       apiVersion: extensions/v1beta1
       kind: Ingress
       metadata:
-        namespace: apps
+        namespace: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.namespace is defined else 'apps' }}"
         name: "{{k8s_simple_proxied_app.name}}"
         annotations:
           nginx.ingress.kubernetes.io/rewrite-target: "{{ k8s_simple_proxied_app.uriRewrite if k8s_simple_proxied_app.uriRewrite is defined else  '/$2' if k8s_simple_proxied_app.uriRegex is defined else '/' }}"
