@@ -9,6 +9,8 @@
   set_fact:
     httpHosts: "{{ httpHosts | union([{'host': item, 'http': { 'paths': [{ 'path':(k8s_simple_proxied_app.uriPath if k8s_simple_proxied_app.uriPath is defined else k8s_simple_proxied_app.uriRegex if k8s_simple_proxied_app.uriRegex is defined else '/'), 'pathType':(k8s_simple_proxied_app.pathType if k8s_simple_proxied_app.pathType is defined else 'Prefix'), 'backend':{'service':{ 'name':k8s_simple_proxied_app.name, 'port':{'number':k8s_simple_proxied_app.containerPort|default(80) }}}}] } }])}}"
   with_items: "{{k8s_simple_proxied_app.hostnames}}"
+  when:
+    - k8s_simple_proxied_app.ingressClassName is defined
 
 - name: set deploymentPorts for "{{k8s_simple_proxied_app.name}}"
   set_fact:
@@ -183,7 +185,7 @@
         labels:
           app: "{{k8s_simple_proxied_app.name}}"
       spec:
-        ingressClassName: "{{ k8s_simple_proxied_app.ingressClassName  if k8s_simple_proxied_app.ingressClassName is defined else 'nginx' }}"
+        ingressClassName: "{{ k8s_simple_proxied_app.ingressClassName }}"
         tls:
           - hosts: "{{k8s_simple_proxied_app.hostnames}}"
             secretName: "{{k8s_simple_proxied_app.certName if k8s_simple_proxied_app.certName is defined else k8s_simple_proxied_app.name }}-tls"
@@ -191,6 +193,8 @@
 
   when:
     - k8s_simple_proxied_app.issuerRef is defined
+    - k8s_simple_proxied_app.ingressClassName is defined
+    - k8s_simple_proxied_app.ingressClassName is defined
 
 - name: Create Ingress with http for "{{k8s_simple_proxied_app.name}}"
   community.kubernetes.k8s:
@@ -210,11 +214,12 @@
         labels:
           app: "{{k8s_simple_proxied_app.name}}"
       spec:
-        ingressClassName: "{{ k8s_simple_proxied_app.ingressClassName  if k8s_simple_proxied_app.ingressClassName is defined else 'nginx' }}"
+        ingressClassName: "{{ k8s_simple_proxied_app.ingressClassName }}"
         rules: "{{httpHosts}}"
   when:
     - k8s_simple_proxied_app.issuerRef is undefined
     - k8s_simple_proxied_app.certName is undefined
+    - k8s_simple_proxied_app.ingressClassName is defined
 
 - name: Create Ingress with https for "{{k8s_simple_proxied_app.name}} by certname"
   community.kubernetes.k8s:
@@ -234,7 +239,7 @@
         labels:
           app: "{{k8s_simple_proxied_app.name}}"
       spec:
-        ingressClassName: "{{ k8s_simple_proxied_app.ingressClassName  if k8s_simple_proxied_app.ingressClassName is defined else 'nginx' }}"
+        ingressClassName: "{{ k8s_simple_proxied_app.ingressClassName }}"
         rules: "{{httpHosts}}"
         tls:
           - hosts: "{{k8s_simple_proxied_app.hostnames}}"
@@ -242,3 +247,4 @@
   when:
     - k8s_simple_proxied_app.issuerRef is undefined
     - k8s_simple_proxied_app.certName is defined
+    - k8s_simple_proxied_app.ingressClassName is defined
