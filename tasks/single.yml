@@ -169,7 +169,7 @@
   community.kubernetes.k8s:
     state: "{{ state if state is defined else 'present' }}"
     definition:
-      apiVersion: extensions/v1beta1
+      apiVersion: networking.k8s.io/v1
       kind: Ingress
       metadata:
         namespace: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.namespace is defined else 'apps' }}"
@@ -196,7 +196,7 @@
   community.kubernetes.k8s:
     state: "{{ state if state is defined else 'present' }}"
     definition:
-      apiVersion: extensions/v1beta1
+      apiVersion: networking.k8s.io/v1
       kind: Ingress
       metadata:
         namespace: "{{ k8s_simple_proxied_app.namespace  if k8s_simple_proxied_app.namespace is defined else 'apps' }}"
