@@ -7,7 +7,7 @@
 
 - name: set httpHosts for "{{k8s_simple_proxied_app.name}}"
   set_fact:
-    httpHosts: "{{ httpHosts | union([{'host': item, 'http': { 'paths': [{ 'path':(k8s_simple_proxied_app.uriPath if k8s_simple_proxied_app.uriPath is defined else k8s_simple_proxied_app.uriRegex if k8s_simple_proxied_app.uriRegex is defined else '/'), 'pathType':(k8s_simple_proxied_app.pathType if k8s_simple_proxied_app.pathType is defined else 'Prefix'), 'backend':{ 'serviceName':k8s_simple_proxied_app.name, 'servicePort':k8s_simple_proxied_app.containerPort|default(80) }}] } }])}}"
+    httpHosts: "{{ httpHosts | union([{'host': item, 'http': { 'paths': [{ 'path':(k8s_simple_proxied_app.uriPath if k8s_simple_proxied_app.uriPath is defined else k8s_simple_proxied_app.uriRegex if k8s_simple_proxied_app.uriRegex is defined else '/'), 'pathType':(k8s_simple_proxied_app.pathType if k8s_simple_proxied_app.pathType is defined else 'Prefix'), 'backend':{'service':{ 'name':k8s_simple_proxied_app.name, 'port':{'number':k8s_simple_proxied_app.containerPort|default(80) }}}}] } }])}}"
   with_items: "{{k8s_simple_proxied_app.hostnames}}"
 
 - name: set deploymentPorts for "{{k8s_simple_proxied_app.name}}"
