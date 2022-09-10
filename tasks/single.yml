@@ -133,7 +133,7 @@
         labels:
           app: "{{k8s_simple_proxied_app.name}}"
       spec:
-        replicas: "{{ k8s_simple_proxied_app.replicas  if k8s_simple_proxied_app.replicas is defined else 1 }}"
+        replicas: "{{ k8s_simple_proxied_app.replicas }}"
         selector:
           matchLabels:
             app: "{{k8s_simple_proxied_app.name}}"
